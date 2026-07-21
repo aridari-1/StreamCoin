@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "src/app/api/tracker/poll/route.ts": {
-      "maxDuration": 55
-    }
-  }
-}
+{}
