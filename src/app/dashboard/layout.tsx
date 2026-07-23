@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useWallet } from '@/hooks/useWallet'
 import { WalletButton } from '@/components/WalletButton'
-import { clsx } from 'clsx'
 
 const nav = [
   { href: '/dashboard',          label: 'Overview'  },
@@ -17,38 +16,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { wallet } = useWallet()
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <nav className="h-14 bg-[#161b22] border-b border-[#30363d] flex items-center px-6 gap-4 flex-shrink-0">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 font-bold text-white flex-shrink-0">
-          <span className="w-7 h-7 rounded-full bg-[#7F77DD] flex items-center justify-center text-sm">▶</span>
-          <span className="hidden sm:inline text-sm">StreamCoin</span>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--c-bg)' }}>
+      <nav className="h-14 flex items-center px-6 gap-4 flex-shrink-0"
+        style={{ background: 'var(--c-surface)', borderBottom: '1px solid var(--c-border)' }}>
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #8b7cf8, #22d3a5)' }}>▶</div>
+          <span className="hidden sm:inline text-sm font-semibold text-white tracking-tight">StreamCoin</span>
         </Link>
 
-        {/* Page nav */}
-        <div className="flex items-center gap-1 flex-1">
-          {nav.map(({ href, label }) => (
-            <Link key={href} href={href}
-              className={clsx(
-                'px-3 py-1.5 rounded-lg text-sm transition-colors whitespace-nowrap',
-                pathname === href
-                  ? 'bg-[#7F77DD]/20 text-[#7F77DD] font-medium'
-                  : 'text-gray-400 hover:text-white'
-              )}>
-              {label}
-            </Link>
-          ))}
+        <div className="flex items-center gap-0.5 flex-1">
+          {nav.map(({ href, label }) => {
+            const active = pathname === href
+            return (
+              <Link key={href} href={href}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                style={{ background: active ? 'var(--c-purple-lo)' : 'transparent', color: active ? 'var(--c-purple)' : 'var(--c-muted)' }}>
+                {label}
+              </Link>
+            )
+          })}
         </div>
 
-        {/* Right side — YouTube wallet indicator + MetaMask */}
         <div className="flex items-center gap-3 flex-shrink-0">
           {wallet && (
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-[#0f1117] border border-[#30363d] rounded-lg">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-xs text-gray-400 font-mono">
-                {wallet.slice(0, 6)}…{wallet.slice(-4)}
-              </span>
-              <span className="text-xs text-gray-600">YouTube</span>
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono"
+              style={{ background: 'var(--c-raised)', border: '1px solid var(--c-border)', color: 'var(--c-muted)' }}>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--c-green)' }} />
+              {wallet.slice(0,6)}…{wallet.slice(-4)}
             </div>
           )}
           <WalletButton />

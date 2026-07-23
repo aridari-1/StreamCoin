@@ -1,14 +1,19 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getYouTubeOAuthUrl } from '@/lib/youtube'
 
-type Step = 'wallet' | 'platform' | 'done'
+type Step = 'wallet' | 'platform'
 
 export default function ConnectPage() {
   const [step, setStep]               = useState<Step>('wallet')
   const [wallet, setWallet]           = useState('')
   const [walletError, setWalletError] = useState('')
   const [loading, setLoading]         = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('stmc_wallet')
+    if (stored) setWallet(stored)
+  }, [])
 
   function handleWalletSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -18,159 +23,110 @@ export default function ConnectPage() {
       return
     }
     setWalletError('')
+    localStorage.setItem('stmc_wallet', addr)
     setStep('platform')
   }
 
   function connectYouTube() {
     setLoading(true)
-    const redirectUri = `${window.location.origin}/api/youtube/callback`
-    const url         = getYouTubeOAuthUrl(redirectUri, wallet.trim())
+    const url = getYouTubeOAuthUrl(`${window.location.origin}/api/youtube/callback`, wallet.trim())
     window.location.href = url
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 bg-[#0f1117]">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--c-bg)' }}>
+      <div className="fixed inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 0%, #8b7cf808 0%, transparent 100%)' }} />
 
-        {/* Header */}
+      <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-10">
-          <div className="w-14 h-14 rounded-full bg-[#7F77DD] flex items-center justify-center text-2xl mx-auto mb-4 text-white font-bold">▶</div>
-          <h1 className="text-2xl font-bold text-white">Connect to StreamCoin</h1>
-          <p className="text-gray-400 text-sm mt-2">Two steps to start mining STMC</p>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5 font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #8b7cf8, #22d3a5)', boxShadow: '0 0 32px #8b7cf840' }}>▶</div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Connect to StreamCoin</h1>
+          <p className="text-sm mt-2" style={{ color: 'var(--c-muted)' }}>Two steps to start mining STMC</p>
         </div>
 
-        {/* Step indicators */}
-        <div className="flex items-center mb-8">
-          {[1, 2, 3].map((n, i) => (
-            <div key={n} className="flex items-center flex-1">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                (step === 'wallet'   && n === 1) ||
-                (step === 'platform' && n === 2) ||
-                (step === 'done'     && n === 3)
-                  ? 'bg-[#7F77DD] text-white'
-                  : (step === 'platform' && n === 1) || (step === 'done' && n <= 2)
-                    ? 'bg-green-600 text-white'
-                    : 'bg-[#30363d] text-gray-500'
-              }`}>{n}</div>
-              {i < 2 && <div className="flex-1 h-px bg-[#30363d] mx-2" />}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {(['wallet','platform'] as Step[]).map((s,i) => (
+            <div key={s} className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                style={{
+                  background: step===s ? 'var(--c-purple)' : (step==='platform'&&s==='wallet') ? 'var(--c-green)' : 'var(--c-raised)',
+                  color: (step===s||(step==='platform'&&s==='wallet')) ? 'white' : 'var(--c-muted)',
+                  border: `1px solid ${step===s ? 'var(--c-purple)' : 'var(--c-border)'}`,
+                }}>
+                {step==='platform'&&s==='wallet' ? '✓' : i+1}
+              </div>
+              {i===0 && <div className="w-12 h-px" style={{ background: step==='platform' ? 'var(--c-purple)' : 'var(--c-border)' }} />}
             </div>
           ))}
         </div>
 
-        {/* Card */}
-        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
-
-          {/* Step 1 — Wallet */}
+        <div className="rounded-2xl p-6" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
           {step === 'wallet' && (
             <form onSubmit={handleWalletSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Your Polygon Wallet Address
-                </label>
-                <input
-                  type="text"
-                  value={wallet}
-                  onChange={e => setWallet(e.target.value)}
+                <label className="block text-sm font-medium text-white mb-2">Polygon wallet address</label>
+                <input type="text" value={wallet}
+                  onChange={e => { setWallet(e.target.value); setWalletError('') }}
                   placeholder="0x..."
-                  className="w-full bg-[#0f1117] border border-[#30363d] rounded-lg px-4 py-3 text-gray-100 text-sm font-mono placeholder-gray-600 focus:outline-none focus:border-[#7F77DD] transition-colors"
+                  className="w-full rounded-xl px-4 py-3 text-sm font-mono text-white outline-none transition-all"
+                  style={{ background: 'var(--c-bg)', border: `1px solid ${walletError ? 'var(--c-red)' : 'var(--c-border)'}`, color: 'var(--c-text)' }}
                 />
-                {walletError && (
-                  <p className="text-red-400 text-xs mt-2">{walletError}</p>
-                )}
+                {walletError && <p className="text-xs mt-2" style={{ color: 'var(--c-red)' }}>{walletError}</p>}
               </div>
-              <div className="bg-[#0f1117] border border-[#30363d] rounded-lg p-3 text-xs text-gray-500 leading-relaxed">
-                Your STMC rewards will be sent here. We never ask for your private key or seed phrase.
+              <div className="rounded-xl px-4 py-3 text-xs leading-relaxed" style={{ background: 'var(--c-raised)', color: 'var(--c-muted)' }}>
+                STMC rewards are minted to this address. We never ask for your private key.
               </div>
-              <button type="submit"
-                className="w-full py-3 bg-[#7F77DD] hover:bg-[#6b63c7] text-white font-semibold rounded-lg transition-colors">
+              <button type="submit" className="w-full py-3 rounded-xl font-semibold text-sm text-white"
+                style={{ background: 'linear-gradient(135deg, #8b7cf8, #6d5ce8)' }}>
                 Continue →
               </button>
             </form>
           )}
 
-          {/* Step 2 — YouTube */}
           {step === 'platform' && (
-            <div className="space-y-5">
-              <div className="bg-[#0f1117] border border-[#30363d] rounded-lg p-3">
-                <p className="text-xs text-gray-500 mb-1">Wallet</p>
-                <p className="text-xs text-gray-300 font-mono truncate">{wallet}</p>
+            <div className="space-y-4">
+              <div className="rounded-xl px-4 py-3" style={{ background: 'var(--c-raised)', border: '1px solid var(--c-border)' }}>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--c-muted)' }}>Wallet</p>
+                <p className="text-xs font-mono text-white truncate">{wallet}</p>
               </div>
 
-              <div>
-                <p className="text-sm font-medium text-gray-300 mb-4">Connect your YouTube channel</p>
-
-                <button
-                  onClick={connectYouTube}
-                  disabled={loading}
-                  className="w-full flex items-center gap-4 p-4 bg-[#FF0000]/10 hover:bg-[#FF0000]/20 border border-[#FF0000]/30 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {/* YouTube logo */}
-                  <div className="w-11 h-11 rounded-xl bg-[#FF0000] flex items-center justify-center flex-shrink-0">
-                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white">
-                      <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/>
-                    </svg>
-                  </div>
-
-                  <div className="text-left flex-1">
-                    <div className="font-semibold text-white text-sm">Connect YouTube</div>
-                    <div className="text-xs text-gray-400 mt-0.5">
-                      Read-only access · we never post or modify your channel
-                    </div>
-                  </div>
-
-                  {loading
-                    ? <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                    : <span className="text-gray-500 text-sm">→</span>
-                  }
-                </button>
-
-                {/* What we access */}
-                <div className="mt-4 space-y-2">
-                  {[
-                    ['✓', 'Channel name and avatar', 'text-green-400'],
-                    ['✓', 'Live stream viewer count (verified)', 'text-green-400'],
-                    ['✓', 'Average viewers (for tier calculation)', 'text-green-400'],
-                    ['✗', 'Cannot post, delete, or change anything', 'text-gray-500'],
-                    ['✗', 'Cannot access private videos or billing', 'text-gray-500'],
-                  ].map(([icon, label, color]) => (
-                    <div key={label} className="flex items-center gap-2 text-xs">
-                      <span className={color}>{icon}</span>
-                      <span className="text-gray-400">{label}</span>
-                    </div>
-                  ))}
+              <button onClick={connectYouTube} disabled={loading}
+                className="w-full flex items-center gap-4 p-4 rounded-xl transition-all disabled:opacity-50"
+                style={{ background: '#ff4d6d0a', border: '1px solid #ff4d6d25' }}>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#ff4d6d' }}>
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white">
+                    <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/>
+                  </svg>
                 </div>
+                <div className="text-left flex-1">
+                  <div className="font-semibold text-white text-sm">Connect YouTube</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--c-muted)' }}>Read-only · we never post or modify your channel</div>
+                </div>
+                {loading
+                  ? <div className="w-4 h-4 rounded-full animate-spin" style={{ border: '2px solid #ff4d6d40', borderTopColor: '#ff4d6d' }} />
+                  : <span style={{ color: 'var(--c-muted)' }}>→</span>}
+              </button>
+
+              <div className="space-y-1.5">
+                {[['✓','Channel name and avatar',true],['✓','Live stream viewer count (verified)',true],['✓','Average viewers for tier calculation',true],['✗','Cannot post or change anything',false]].map(([icon,label,ok]) => (
+                  <div key={label as string} className="flex items-center gap-2 text-xs">
+                    <span style={{ color: ok ? 'var(--c-green)' : 'var(--c-muted)' }}>{icon as string}</span>
+                    <span style={{ color: 'var(--c-muted)' }}>{label as string}</span>
+                  </div>
+                ))}
               </div>
 
-              <button
-                onClick={() => setStep('wallet')}
-                className="w-full py-2 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-              >
+              <button onClick={() => setStep('wallet')} className="w-full py-2 text-xs" style={{ color: 'var(--c-muted)' }}>
                 ← Change wallet address
               </button>
             </div>
           )}
-
-          {/* Step 3 — Done */}
-          {step === 'done' && (
-            <div className="text-center space-y-4">
-              <div className="w-14 h-14 rounded-full bg-green-600/20 border border-green-600/40 flex items-center justify-center text-3xl mx-auto">
-                ✓
-              </div>
-              <div>
-                <p className="text-white font-semibold text-lg">Connected!</p>
-                <p className="text-gray-400 text-sm mt-1">Start streaming to earn STMC</p>
-              </div>
-              <a href="/dashboard"
-                className="block w-full py-3 bg-[#7F77DD] hover:bg-[#6b63c7] text-white font-semibold rounded-lg transition-colors">
-                Go to Dashboard →
-              </a>
-            </div>
-          )}
         </div>
 
-        <p className="text-center text-xs text-gray-600 mt-6">
-          StreamCoin requests read-only YouTube permissions only.<br />
-          Your password and private data are never shared with us.
+        <p className="text-center text-xs mt-6" style={{ color: 'var(--c-faint)' }}>
+          Read-only YouTube permissions · Polygon (PoS) · No private key required
         </p>
       </div>
     </main>
