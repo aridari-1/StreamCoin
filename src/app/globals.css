@@ -2,18 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ─────────────────────────────────────────── */
 :root {
-  --purple: #7F77DD;
-  --purple-dark: #534AB7;
-  --surface-1: #161b22;
-  --surface-2: #1c2128;
-  --border: #30363d;
+  --c-bg:        #080b10;
+  --c-surface:   #0e1318;
+  --c-raised:    #141a21;
+  --c-border:    #1e2730;
+  --c-border-hi: #2a3540;
+  --c-purple:    #8b7cf8;
+  --c-purple-lo: #8b7cf814;
+  --c-purple-md: #8b7cf830;
+  --c-green:     #22d3a5;
+  --c-green-lo:  #22d3a514;
+  --c-red:       #ff4d6d;
+  --c-red-lo:    #ff4d6d14;
+  --c-amber:     #f5a623;
+  --c-amber-lo:  #f5a62314;
+  --c-text:      #e2e8f0;
+  --c-muted:     #64748b;
+  --c-faint:     #2a3540;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-body { background: #0f1117; color: #c9d1d9; }
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-feature-settings: "cv02","cv03","cv04","cv11";
+  -webkit-font-smoothing: antialiased;
+}
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #161b22; }
-::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--c-bg); }
+::-webkit-scrollbar-thumb { background: var(--c-border-hi); border-radius: 99px; }
+
+/* ── Glow utilities ──────────────────────────────────────────── */
+.glow-purple { box-shadow: 0 0 32px #8b7cf820, 0 0 0 1px #8b7cf818; }
+.glow-green  { box-shadow: 0 0 24px #22d3a516; }
+
+/* ── Gradient text ───────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, #8b7cf8 50%, #22d3a5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Grid background ─────────────────────────────────────────── */
+.grid-bg {
+  background-image:
+    linear-gradient(var(--c-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--c-border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center center;
+}
+
+/* ── Card base ───────────────────────────────────────────────── */
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+}
+
+.card-raised {
+  background: var(--c-raised);
+  border: 1px solid var(--c-border-hi);
+  border-radius: 14px;
+}
+
+/* ── Pill / badge ────────────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+
+/* ── Number ticker ───────────────────────────────────────────── */
+.ticker {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+
+/* ── Focus ring ──────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--c-purple);
+  outline-offset: 2px;
+}
+
+/* ── Smooth transitions ──────────────────────────────────────── */
+a, button { transition: all .15s ease; }
