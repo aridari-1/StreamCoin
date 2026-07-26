@@ -1,14 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-//  StreamCoin Live Session Tracker
-//
-//  Every 60s this module:
-//    1. Calls YouTube Live API for each connected streamer
-//    2. Verifies viewer count + bot detection via chat ratio
-//    3. Writes a snapshot to stream_snapshots (audit trail)
-//    4. Updates the active stream_session record
-//    5. Detects stream end → closes session → queues oracle packet
-// ─────────────────────────────────────────────────────────────
-
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   getLiveBroadcast,
@@ -24,13 +13,12 @@ import {
 } from '@/lib/rewards'
 import { buildOraclePacket } from '@/lib/tracker/oracle'
 
-// ── Constants ─────────────────────────────────────────────────
-const POLL_INTERVAL_MIN  = 1      // 1 minute per poll
-const BOT_RATIO_MIN      = 0.005  // msgs/viewer/min — below = bot suspect
-const LARGE_STREAM_FLOOR = 50_000 // exempt from chat ratio check
-const MAX_SESSION_HOURS  = 24     // auto-close safety limit
+const POLL_INTERVAL_MIN  = 1
+const BOT_RATIO_MIN      = 0.001  // very lenient — only flag obvious bot farms
+const BOT_VIEWER_MINIMUM = 10     // don't check ratio below this viewer count
+const LARGE_STREAM_FLOOR = 50_000
+const MAX_SESSION_HOURS  = 24
 
-// ── Types ─────────────────────────────────────────────────────
 export interface ActiveStreamer {
   id:                    string
   wallet_address:        string
@@ -53,9 +41,6 @@ export interface PollResult {
   message?:   string
 }
 
-// ─────────────────────────────────────────────────────────────
-//  MAIN — poll all streamers
-// ─────────────────────────────────────────────────────────────
 export async function pollAllStreamers(
   supabase: SupabaseClient
 ): Promise<PollResult[]> {
@@ -83,9 +68,6 @@ export async function pollAllStreamers(
   )
 }
 
-// ─────────────────────────────────────────────────────────────
-//  POLL ONE STREAMER
-// ─────────────────────────────────────────────────────────────
 async function pollOneStreamer(
   supabase: SupabaseClient,
   streamer: ActiveStreamer
@@ -104,7 +86,7 @@ async function pollOneStreamer(
     await supabase.from('streamers').update({ youtube_access_token: fresh }).eq('id', streamer.id)
   }
 
-  // 2. Get live broadcast from YouTube
+  // 2. Get live broadcast
   let broadcast: YTLiveBroadcast | null
   try {
     broadcast = await getLiveBroadcast(token)
@@ -121,37 +103,41 @@ async function pollOneStreamer(
     return mkResult(streamer, 'not_live', 0)
   }
 
-  // 4. Bot detection — check chat activity ratio
+  // 4. Bot detection — only above BOT_VIEWER_MINIMUM viewers
   let chatRate = 1
   try { chatRate = await getLiveChatRate(broadcast.liveChatId, token) } catch { /* ignore */ }
   const viewers   = broadcast.concurrentViewers
   const chatRatio = viewers > 0 ? chatRate / viewers : 1
-  const isBotted  = viewers < LARGE_STREAM_FLOOR && chatRatio < BOT_RATIO_MIN
+
+  // Only flag as bot if enough viewers to make ratio meaningful
+  const isBot = viewers >= BOT_VIEWER_MINIMUM
+    && viewers < LARGE_STREAM_FLOOR
+    && chatRatio < BOT_RATIO_MIN
 
   // 5. Write snapshot (always — bot or not)
   const sessId = await upsertSession(supabase, streamer, broadcast, viewers)
   await writeSnapshot(supabase, streamer.id, broadcast.id, viewers, chatRatio,
-    isBotted ? 'bot_suspect' : 'ok', sessId)
+    isBot ? 'bot_suspect' : 'ok', sessId)
 
-  if (isBotted) {
+  if (isBot) {
     console.warn(`[Tracker] Bot suspect ${streamer.youtube_username}: ratio=${chatRatio.toFixed(5)}`)
     return mkResult(streamer, 'bot_suspect', viewers, `Chat ratio ${chatRatio.toFixed(5)}`, sessId)
   }
 
   // 6. Calculate reward for this 60-second window
-  const sess    = await fetchSession(supabase, sessId)
+  const sess      = await fetchSession(supabase, sessId)
   const hoursLive = sess
-    ? (Date.now() - new Date(sess.started_at).getTime()) / 3600_000
+    ? (Date.now() - new Date(sess.started_at).getTime()) / 3_600_000
     : 1
-  const ep      = epochMultiplier()
-  const reward  = calcStreamReward(
+  const ep     = epochMultiplier()
+  const reward = calcStreamReward(
     viewers,
-    POLL_INTERVAL_MIN,       // minutes this window
+    POLL_INTERVAL_MIN,
     Math.max(1, Math.ceil(hoursLive)),
     streamer.avg_viewers
   )
 
-  // 7. Auto-close if stream exceeds 24h
+  // 7. Auto-close if over 24h
   if (hoursLive >= MAX_SESSION_HOURS) {
     await closeSession(supabase, streamer, sess)
     return mkResult(streamer, 'ended', viewers, 'Auto-closed: 24h limit', sessId, reward)
@@ -177,17 +163,12 @@ async function pollOneStreamer(
   return mkResult(streamer, 'live', viewers, undefined, sessId, reward)
 }
 
-// ─────────────────────────────────────────────────────────────
-//  SESSION HELPERS
-// ─────────────────────────────────────────────────────────────
-
 async function upsertSession(
   supabase: SupabaseClient,
   streamer: ActiveStreamer,
   broadcast: YTLiveBroadcast,
   viewers: number
 ): Promise<string> {
-  // Return existing session if it matches this broadcast
   if (streamer.active_session_id) {
     const { data: ex } = await supabase
       .from('stream_sessions')
@@ -198,7 +179,6 @@ async function upsertSession(
     if (ex?.stream_id === broadcast.id) return ex.id
   }
 
-  // Create new session
   const { data: ns, error } = await supabase
     .from('stream_sessions')
     .insert({
@@ -236,10 +216,10 @@ async function closeSession(
   const sessId = streamer.active_session_id
   if (!sessId) return
 
-  const endedAt  = new Date().toISOString()
-  const startAt  = sess?.started_at ?? endedAt
-  const durMin   = Math.floor((Date.now() - new Date(startAt).getTime()) / 60_000)
-  const earned   = Number(sess?.stmc_earned ?? 0)
+  const endedAt = new Date().toISOString()
+  const startAt = sess?.started_at ?? endedAt
+  const durMin  = Math.floor((Date.now() - new Date(startAt).getTime()) / 60_000)
+  const earned  = Number(sess?.stmc_earned ?? 0)
 
   await supabase.from('stream_sessions').update({
     status:           'pending_reward',
@@ -250,7 +230,6 @@ async function closeSession(
 
   await supabase.from('streamers').update({ active_session_id: null }).eq('id', streamer.id)
 
-  // Queue oracle packet if there are rewards to mint
   if (earned > 0 && sess) {
     await buildOraclePacket(supabase, {
       streamerId:      streamer.id,
