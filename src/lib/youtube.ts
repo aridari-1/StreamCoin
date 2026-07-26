@@ -127,36 +127,72 @@ export async function getYouTubeChannel(
 export async function getLiveBroadcast(
   accessToken: string
 ): Promise<YTLiveBroadcast | null> {
-  // Step 1: get active broadcast IDs
-  const broadcastRes = await fetch(
-    `${YT_API}/liveBroadcasts?part=snippet,status&broadcastStatus=active&broadcastType=all`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  )
-  if (!broadcastRes.ok) return null
-  const broadcastData = await broadcastRes.json()
-  const broadcast     = broadcastData.items?.[0]
-  if (!broadcast) return null
 
-  const streamId = broadcast.snippet?.boundStreamId
-  if (!streamId) return null
+  // Try 'active' first, then fall back to 'all' to catch streams
+  // that are in 'testing' or 'live' state
+  const statuses = ['active', 'all']
 
-  // Step 2: get concurrent viewers from the bound live stream
-  const streamRes = await fetch(
-    `${YT_API}/liveStreams?part=status&id=${streamId}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  )
-  if (!streamRes.ok) return null
-  const streamData = await streamRes.json()
-  const stream     = streamData.items?.[0]
+  for (const broadcastStatus of statuses) {
+    const broadcastRes = await fetch(
+      `${YT_API}/liveBroadcasts?part=snippet,status,contentDetails&broadcastStatus=${broadcastStatus}&broadcastType=all&maxResults=10`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    )
+    if (!broadcastRes.ok) continue
 
-  return {
-    id:               broadcast.id,
-    title:            broadcast.snippet.title ?? 'Untitled stream',
-    status:           broadcast.status.lifeCycleStatus === 'live' ? 'live' : 'upcoming',
-    concurrentViewers: parseInt(stream?.status?.concurrentViewers ?? '0'),
-    startedAt:        broadcast.snippet.actualStartTime ?? new Date().toISOString(),
-    liveChatId:       broadcast.snippet.liveChatId ?? '',
+    const broadcastData = await broadcastRes.json()
+    const items = broadcastData.items ?? []
+
+    // Find one that is actually live
+    const broadcast = items.find((b: any) =>
+      b.status?.lifeCycleStatus === 'live' ||
+      b.status?.lifeCycleStatus === 'liveStarting'
+    )
+
+    if (!broadcast) continue
+
+    const streamId = broadcast.snippet?.boundStreamId
+      ?? broadcast.contentDetails?.boundStreamId
+
+    let concurrentViewers = 0
+
+    if (streamId) {
+      const streamRes = await fetch(
+        `${YT_API}/liveStreams?part=status&id=${streamId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      )
+      if (streamRes.ok) {
+        const streamData = await streamRes.json()
+        concurrentViewers = parseInt(
+          streamData.items?.[0]?.status?.concurrentViewers ?? '0'
+        )
+      }
+    }
+
+    // Also try getting viewer count directly from the broadcast
+    if (concurrentViewers === 0) {
+      const videoRes = await fetch(
+        `${YT_API}/videos?part=liveStreamingDetails&id=${broadcast.id}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      )
+      if (videoRes.ok) {
+        const videoData = await videoRes.json()
+        concurrentViewers = parseInt(
+          videoData.items?.[0]?.liveStreamingDetails?.concurrentViewers ?? '0'
+        )
+      }
+    }
+
+    return {
+      id:                broadcast.id,
+      title:             broadcast.snippet?.title ?? 'Live stream',
+      status:            'live',
+      concurrentViewers,
+      startedAt:         broadcast.snippet?.actualStartTime ?? new Date().toISOString(),
+      liveChatId:        broadcast.snippet?.liveChatId ?? '',
+    }
   }
+
+  return null
 }
 
 // ── Get live chat message rate (for CAR check) ────────────────

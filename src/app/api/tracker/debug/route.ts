@@ -60,16 +60,49 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ...log, error: `Token test threw: ${e}` })
   }
 
-  // Step 3: check live broadcast
+// Step 3: check live broadcast — try multiple approaches
   try {
+    // Raw API call so we can see exactly what YouTube returns
+    const rawRes = await fetch(
+      'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status&broadcastStatus=active&broadcastType=all',
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    const rawData = await rawRes.json()
+    log.youtube_api_status = rawRes.status
+    log.youtube_raw_items  = rawData.items?.length ?? 0
+    log.youtube_items      = rawData.items?.map((b: any) => ({
+      id:              b.id,
+      title:           b.snippet?.title,
+      lifeCycleStatus: b.status?.lifeCycleStatus,
+      privacyStatus:   b.status?.privacyStatus,
+      actualStartTime: b.snippet?.actualStartTime,
+    })) ?? []
+
     const broadcast = await getLiveBroadcast(token)
     log.is_live = !!broadcast
     if (broadcast) {
-      log.broadcast_id      = broadcast.id
-      log.broadcast_title   = broadcast.title
-      log.broadcast_status  = broadcast.status
+      log.broadcast_id       = broadcast.id
+      log.broadcast_title    = broadcast.title
       log.concurrent_viewers = broadcast.concurrentViewers
-      log.live_chat_id      = broadcast.liveChatId
+      log.live_chat_id       = broadcast.liveChatId
+
+      try {
+        const chatRate  = await getLiveChatRate(broadcast.liveChatId, token)
+        const chatRatio = broadcast.concurrentViewers > 0
+          ? chatRate / broadcast.concurrentViewers : 1
+        log.chat_msgs_per_min = chatRate
+        log.chat_ratio        = chatRatio
+        log.bot_suspect       = chatRatio < 0.005 && broadcast.concurrentViewers < 50000
+      } catch (e) {
+        log.chat_error = String(e)
+      }
+    } else {
+      log.not_live_reason   = 'No active broadcast found'
+      log.youtube_api_items = rawData.items
+    }
+  } catch (e) {
+    log.broadcast_error = String(e)
+  }
 
       // Step 4: chat rate
       try {
