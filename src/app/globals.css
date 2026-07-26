@@ -97,3 +97,15 @@ body {
 
 /* ── Smooth transitions ──────────────────────────────────────── */
 a, button { transition: all .15s ease; }
+/* ── Force background on html/body so it applies before JS loads ── */
+html, body {
+  background-color: #080b10 !important;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+/* ── Ensure CSS variables load before components render ── */
+#__next, [data-nextjs-scroll-focus-boundary] {
+  background-color: #080b10;
+  min-height: 100vh;
+}
