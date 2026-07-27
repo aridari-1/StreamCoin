@@ -19,10 +19,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--c-bg)' }}>
       <nav className="h-14 flex items-center px-6 gap-4 flex-shrink-0"
         style={{ background: 'var(--c-surface)', borderBottom: '1px solid var(--c-border)' }}>
+
         <Link href="/" className="flex items-center gap-2 flex-shrink-0">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white"
             style={{ background: 'linear-gradient(135deg, #8b7cf8, #22d3a5)' }}>▶</div>
-          <span className="hidden sm:inline text-sm font-semibold text-white tracking-tight">StreamCoin</span>
+          <span className="hidden sm:inline text-sm font-semibold text-white tracking-tight">StreamMine</span>
         </Link>
 
         <div className="flex items-center gap-0.5 flex-1">
@@ -31,7 +32,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             return (
               <Link key={href} href={href}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                style={{ background: active ? 'var(--c-purple-lo)' : 'transparent', color: active ? 'var(--c-purple)' : 'var(--c-muted)' }}>
+                style={{
+                  background: active ? 'var(--c-purple-lo)' : 'transparent',
+                  color:      active ? 'var(--c-purple)'    : 'var(--c-muted)',
+                }}>
                 {label}
               </Link>
             )

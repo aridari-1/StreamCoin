@@ -3,8 +3,8 @@ import './globals.css'
 import { Web3Providers } from '@/components/Web3Providers'
 
 export const metadata: Metadata = {
-  title: 'StreamCoin — Mine STMC while you stream',
-  description: 'The streaming economy token. Earn STMC by streaming on YouTube.',
+  title: 'StreamMine — Mine SMINE while you stream',
+  description: 'The streaming economy token. Earn SMINE by streaming on YouTube.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
