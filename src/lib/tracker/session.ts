@@ -14,8 +14,8 @@ import {
 import { buildOraclePacket } from '@/lib/tracker/oracle'
 
 const POLL_INTERVAL_MIN  = 1
-const BOT_RATIO_MIN      = 0.001  // very lenient — only flag obvious bot farms
-const BOT_VIEWER_MINIMUM = 10     // don't check ratio below this viewer count
+const BOT_RATIO_MIN      = 0.001
+const BOT_VIEWER_MINIMUM = 10
 const LARGE_STREAM_FLOOR = 50_000
 const MAX_SESSION_HOURS  = 24
 
@@ -73,7 +73,6 @@ async function pollOneStreamer(
   streamer: ActiveStreamer
 ): Promise<PollResult> {
 
-  // 1. Refresh token if needed
   let token = streamer.youtube_access_token
   const ok  = await probeToken(token)
   if (!ok) {
@@ -86,7 +85,6 @@ async function pollOneStreamer(
     await supabase.from('streamers').update({ youtube_access_token: fresh }).eq('id', streamer.id)
   }
 
-  // 2. Get live broadcast
   let broadcast: YTLiveBroadcast | null
   try {
     broadcast = await getLiveBroadcast(token)
@@ -94,7 +92,6 @@ async function pollOneStreamer(
     return mkResult(streamer, 'error', 0, `YouTube API error: ${e}`)
   }
 
-  // 3. Not live — close any open session
   if (!broadcast || broadcast.status !== 'live') {
     if (streamer.active_session_id) {
       const sess = await fetchSession(supabase, streamer.active_session_id)
@@ -103,51 +100,45 @@ async function pollOneStreamer(
     return mkResult(streamer, 'not_live', 0)
   }
 
-  // 4. Bot detection — only above BOT_VIEWER_MINIMUM viewers
   let chatRate = 1
   try { chatRate = await getLiveChatRate(broadcast.liveChatId, token) } catch { /* ignore */ }
   const viewers   = broadcast.concurrentViewers
   const chatRatio = viewers > 0 ? chatRate / viewers : 1
-
-  // Only flag as bot if enough viewers to make ratio meaningful
-  const isBot = viewers >= BOT_VIEWER_MINIMUM
+  const isBot     = viewers >= BOT_VIEWER_MINIMUM
     && viewers < LARGE_STREAM_FLOOR
     && chatRatio < BOT_RATIO_MIN
 
-  // 5. Write snapshot (always — bot or not)
   const sessId = await upsertSession(supabase, streamer, broadcast, viewers)
   await writeSnapshot(supabase, streamer.id, broadcast.id, viewers, chatRatio,
     isBot ? 'bot_suspect' : 'ok', sessId)
 
   if (isBot) {
-    console.warn(`[Tracker] Bot suspect ${streamer.youtube_username}: ratio=${chatRatio.toFixed(5)}`)
     return mkResult(streamer, 'bot_suspect', viewers, `Chat ratio ${chatRatio.toFixed(5)}`, sessId)
   }
 
-  // 6. Calculate reward for this 60-second window
   const sess      = await fetchSession(supabase, sessId)
   const hoursLive = sess
     ? (Date.now() - new Date(sess.started_at).getTime()) / 3_600_000
     : 1
-  const ep     = epochMultiplier()
-  const reward = calcStreamReward(
-    viewers,
+  const ep             = epochMultiplier()
+  // Use at least 1 viewer — YouTube API returns 0 for very small streams
+  const effectiveViewers = Math.max(viewers, 1)
+  const reward         = calcStreamReward(
+    effectiveViewers,
     POLL_INTERVAL_MIN,
     Math.max(1, Math.ceil(hoursLive)),
     streamer.avg_viewers
   )
 
-  // 7. Auto-close if over 24h
   if (hoursLive >= MAX_SESSION_HOURS) {
     await closeSession(supabase, streamer, sess)
     return mkResult(streamer, 'ended', viewers, 'Auto-closed: 24h limit', sessId, reward)
   }
 
-  // 8. Update session totals
   const snapCount = (sess?.snapshot_count ?? 0) + 1
   await supabase.from('stream_sessions').update({
     stmc_earned:      Number((sess?.stmc_earned ?? 0)) + reward,
-    verified_viewers: viewers,
+    verified_viewers: Math.max(viewers, 1),
     avg_viewers:      runningAvg(sess?.avg_viewers ?? viewers, viewers, snapCount),
     peak_viewers:     Math.max(sess?.peak_viewers ?? 0, viewers),
     duration_minutes: Math.round(hoursLive * 60),
