@@ -5,6 +5,10 @@ import { Web3Providers } from '@/components/Web3Providers'
 export const metadata: Metadata = {
   title: 'StreamMine — Mine SMINE while you stream',
   description: 'The streaming economy token. Earn SMINE by streaming on YouTube.',
+  icons: {
+    icon: '/logo.svg',
+    apple: '/logo.svg',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

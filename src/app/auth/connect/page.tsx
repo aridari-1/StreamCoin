@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { LogoMark } from '@/components/Logo'
 import { getYouTubeOAuthUrl } from '@/lib/youtube'
 
 type Step = 'wallet' | 'platform'
@@ -33,102 +35,149 @@ export default function ConnectPage() {
     window.location.href = url
   }
 
+  const s = {
+    page:      { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:'24px', background:'#080b10', fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', position:'relative' as const, overflow:'hidden' },
+    glow1:     { position:'absolute' as const, width:500, height:500, borderRadius:'50%', background:'rgba(139,124,248,.1)', top:'-10%', left:'50%', transform:'translateX(-50%)', filter:'blur(80px)', pointerEvents:'none' as const },
+    glow2:     { position:'absolute' as const, width:250, height:250, borderRadius:'50%', background:'rgba(34,211,165,.08)', bottom:'10%', right:'5%', filter:'blur(60px)', pointerEvents:'none' as const },
+    wrap:      { width:'100%', maxWidth:420, position:'relative' as const, zIndex:10 },
+    logoWrap:  { textAlign:'center' as const, marginBottom:40 },
+    title:     { fontSize:26, fontWeight:800, color:'#fff', letterSpacing:'-0.03em', margin:'0 0 8px' },
+    sub:       { fontSize:14, color:'rgba(255,255,255,.35)', margin:0 },
+    steps:     { display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:32 },
+    card:      { background:'rgba(14,19,24,.9)', border:'1px solid rgba(255,255,255,.08)', borderRadius:20, padding:28, backdropFilter:'blur(20px)' },
+    label:     { display:'block', fontSize:13, fontWeight:600, color:'rgba(255,255,255,.6)', marginBottom:10, letterSpacing:'.02em', textTransform:'uppercase' as const },
+    input:     { width:'100%', background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', borderRadius:12, padding:'14px 16px', fontSize:13, fontFamily:'monospace', color:'#fff', outline:'none', boxSizing:'border-box' as const, transition:'border-color .2s' },
+    hint:      { background:'rgba(139,124,248,.06)', border:'1px solid rgba(139,124,248,.15)', borderRadius:10, padding:'12px 14px', fontSize:12, color:'rgba(255,255,255,.35)', lineHeight:1.6 },
+    btn:       { width:'100%', padding:'14px', borderRadius:12, fontWeight:700, fontSize:14, color:'#fff', border:'none', cursor:'pointer', background:'linear-gradient(135deg,#8b7cf8,#6d5ce8)', boxShadow:'0 0 30px rgba(139,124,248,.4)', transition:'opacity .2s,transform .2s', letterSpacing:'-0.01em' },
+    ytBtn:     { width:'100%', display:'flex', alignItems:'center', gap:16, padding:'16px', borderRadius:14, background:'rgba(255,77,109,.06)', border:'1px solid rgba(255,77,109,.2)', cursor:'pointer', transition:'background .2s', boxSizing:'border-box' as const },
+    walletBox: { background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.07)', borderRadius:10, padding:'12px 14px', marginBottom:16 },
+    footer:    { textAlign:'center' as const, fontSize:11, color:'rgba(255,255,255,.15)', marginTop:20, lineHeight:1.6 },
+  }
+
   return (
-    <main className="min-h-screen flex items-center justify-center px-6" style={{ background: 'var(--c-bg)' }}>
-      <div className="fixed inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 0%, #8b7cf808 0%, transparent 100%)' }} />
+    <div style={s.page}>
+      <div style={s.glow1} />
+      <div style={s.glow2} />
+      <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(139,124,248,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(139,124,248,.04) 1px,transparent 1px)', backgroundSize:'60px 60px', pointerEvents:'none' }} />
 
-      <div className="w-full max-w-sm relative z-10">
-        <div className="text-center mb-10">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5 font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #8b7cf8, #22d3a5)', boxShadow: '0 0 32px #8b7cf840' }}>▶</div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Connect to StreamCoin</h1>
-          <p className="text-sm mt-2" style={{ color: 'var(--c-muted)' }}>Two steps to start mining STMC</p>
+      <div style={s.wrap}>
+        {/* Logo */}
+        <div style={s.logoWrap}>
+          <Link href="/" style={{ textDecoration:'none', display:'flex', justifyContent:'center', marginBottom:20 }}>
+            <LogoMark size="lg" />
+          </Link>
+          <h1 style={s.title}>
+            {step === 'wallet' ? 'Connect your wallet' : 'Link YouTube channel'}
+          </h1>
+          <p style={s.sub}>
+            {step === 'wallet' ? 'Step 1 of 2 — where your SMINE rewards go' : 'Step 2 of 2 — read-only access only'}
+          </p>
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {(['wallet','platform'] as Step[]).map((s,i) => (
-            <div key={s} className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-                style={{
-                  background: step===s ? 'var(--c-purple)' : (step==='platform'&&s==='wallet') ? 'var(--c-green)' : 'var(--c-raised)',
-                  color: (step===s||(step==='platform'&&s==='wallet')) ? 'white' : 'var(--c-muted)',
-                  border: `1px solid ${step===s ? 'var(--c-purple)' : 'var(--c-border)'}`,
+        {/* Step indicator */}
+        <div style={s.steps}>
+          {[1,2].map((n, i) => {
+            const done   = (n === 1 && step === 'platform')
+            const active = (n === 1 && step === 'wallet') || (n === 2 && step === 'platform')
+            return (
+              <div key={n} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div style={{
+                  width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:12, fontWeight:700, transition:'all .3s',
+                  background: done ? '#22d3a5' : active ? '#8b7cf8' : 'rgba(255,255,255,.06)',
+                  color: (done || active) ? '#fff' : 'rgba(255,255,255,.3)',
+                  boxShadow: active ? '0 0 16px rgba(139,124,248,.5)' : 'none',
+                  border: `1px solid ${done ? '#22d3a5' : active ? '#8b7cf8' : 'rgba(255,255,255,.1)'}`,
                 }}>
-                {step==='platform'&&s==='wallet' ? '✓' : i+1}
+                  {done ? '✓' : n}
+                </div>
+                {i === 0 && (
+                  <div style={{ width:48, height:1, background: step === 'platform' ? '#8b7cf8' : 'rgba(255,255,255,.08)', transition:'background .4s' }} />
+                )}
               </div>
-              {i===0 && <div className="w-12 h-px" style={{ background: step==='platform' ? 'var(--c-purple)' : 'var(--c-border)' }} />}
-            </div>
-          ))}
+            )
+          })}
         </div>
 
-        <div className="rounded-2xl p-6" style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
+        {/* Card */}
+        <div style={s.card}>
           {step === 'wallet' && (
-            <form onSubmit={handleWalletSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Polygon wallet address</label>
-                <input type="text" value={wallet}
-                  onChange={e => { setWallet(e.target.value); setWalletError('') }}
-                  placeholder="0x..."
-                  className="w-full rounded-xl px-4 py-3 text-sm font-mono text-white outline-none transition-all"
-                  style={{ background: 'var(--c-bg)', border: `1px solid ${walletError ? 'var(--c-red)' : 'var(--c-border)'}`, color: 'var(--c-text)' }}
-                />
-                {walletError && <p className="text-xs mt-2" style={{ color: 'var(--c-red)' }}>{walletError}</p>}
+            <form onSubmit={handleWalletSubmit}>
+              <label style={s.label}>Polygon wallet address</label>
+              <input
+                type="text" value={wallet}
+                onChange={e => { setWallet(e.target.value); setWalletError('') }}
+                placeholder="0x..."
+                style={{ ...s.input, borderColor: walletError ? '#ff4d6d' : 'rgba(255,255,255,.1)', marginBottom: walletError ? 8 : 16 }}
+                onFocus={e => { if (!walletError) e.target.style.borderColor = '#8b7cf8' }}
+                onBlur={e => { if (!walletError) e.target.style.borderColor = 'rgba(255,255,255,.1)' }}
+              />
+              {walletError && <p style={{ fontSize:12, color:'#ff4d6d', marginBottom:16 }}>{walletError}</p>}
+              <div style={{ ...s.hint, marginBottom:20 }}>
+                SMINE rewards are minted directly to this address on Polygon. We never ask for your private key or seed phrase.
               </div>
-              <div className="rounded-xl px-4 py-3 text-xs leading-relaxed" style={{ background: 'var(--c-raised)', color: 'var(--c-muted)' }}>
-                STMC rewards are minted to this address. We never ask for your private key.
-              </div>
-              <button type="submit" className="w-full py-3 rounded-xl font-semibold text-sm text-white"
-                style={{ background: 'linear-gradient(135deg, #8b7cf8, #6d5ce8)' }}>
+              <button type="submit" style={s.btn}
+                onMouseEnter={e => { e.currentTarget.style.opacity='.9'; e.currentTarget.style.transform='translateY(-1px)' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity='1'; e.currentTarget.style.transform='translateY(0)' }}>
                 Continue →
               </button>
             </form>
           )}
 
           {step === 'platform' && (
-            <div className="space-y-4">
-              <div className="rounded-xl px-4 py-3" style={{ background: 'var(--c-raised)', border: '1px solid var(--c-border)' }}>
-                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--c-muted)' }}>Wallet</p>
-                <p className="text-xs font-mono text-white truncate">{wallet}</p>
+            <div>
+              <div style={s.walletBox}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,.3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Reward wallet</div>
+                <div style={{ fontSize:12, fontFamily:'monospace', color:'rgba(255,255,255,.7)', wordBreak:'break-all' }}>{wallet}</div>
               </div>
 
-              <button onClick={connectYouTube} disabled={loading}
-                className="w-full flex items-center gap-4 p-4 rounded-xl transition-all disabled:opacity-50"
-                style={{ background: '#ff4d6d0a', border: '1px solid #ff4d6d25' }}>
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#ff4d6d' }}>
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white">
+              <button onClick={connectYouTube} disabled={loading} style={s.ytBtn}
+                onMouseEnter={e => { if (!loading) e.currentTarget.style.background='rgba(255,77,109,.12)' }}
+                onMouseLeave={e => { e.currentTarget.style.background='rgba(255,77,109,.06)' }}>
+                <div style={{ width:48, height:48, borderRadius:14, background:'#ff4d6d', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 0 20px rgba(255,77,109,.4)' }}>
+                  <svg viewBox="0 0 24 24" style={{ width:24, height:24, fill:'white' }}>
                     <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/>
                   </svg>
                 </div>
-                <div className="text-left flex-1">
-                  <div className="font-semibold text-white text-sm">Connect YouTube</div>
-                  <div className="text-xs mt-0.5" style={{ color: 'var(--c-muted)' }}>Read-only · we never post or modify your channel</div>
+                <div style={{ flex:1, textAlign:'left' }}>
+                  <div style={{ fontWeight:700, fontSize:15, color:'#fff' }}>Connect YouTube</div>
+                  <div style={{ fontSize:12, color:'rgba(255,255,255,.35)', marginTop:2 }}>Read-only · we never post or modify your channel</div>
                 </div>
                 {loading
-                  ? <div className="w-4 h-4 rounded-full animate-spin" style={{ border: '2px solid #ff4d6d40', borderTopColor: '#ff4d6d' }} />
-                  : <span style={{ color: 'var(--c-muted)' }}>→</span>}
+                  ? <div style={{ width:18, height:18, borderRadius:'50%', border:'2px solid rgba(255,77,109,.3)', borderTopColor:'#ff4d6d', animation:'spin 1s linear infinite' }} />
+                  : <span style={{ color:'rgba(255,255,255,.3)', fontSize:18 }}>→</span>
+                }
               </button>
 
-              <div className="space-y-1.5">
-                {[['✓','Channel name and avatar',true],['✓','Live stream viewer count (verified)',true],['✓','Average viewers for tier calculation',true],['✗','Cannot post or change anything',false]].map(([icon,label,ok]) => (
-                  <div key={label as string} className="flex items-center gap-2 text-xs">
-                    <span style={{ color: ok ? 'var(--c-green)' : 'var(--c-muted)' }}>{icon as string}</span>
-                    <span style={{ color: 'var(--c-muted)' }}>{label as string}</span>
+              <div style={{ marginTop:20, display:'flex', flexDirection:'column', gap:8 }}>
+                {[
+                  [true,  'Channel name, avatar and handle'],
+                  [true,  'Live stream concurrent viewer count'],
+                  [true,  '30-day average viewers for tier'],
+                  [false, 'Cannot post, delete or change anything'],
+                ].map(([ok, label]) => (
+                  <div key={label as string} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'rgba(255,255,255,.3)' }}>
+                    <span style={{ color: ok ? '#22d3a5' : 'rgba(255,255,255,.2)', fontWeight:700 }}>{ok ? '✓' : '✕'}</span>
+                    {label as string}
                   </div>
                 ))}
               </div>
 
-              <button onClick={() => setStep('wallet')} className="w-full py-2 text-xs" style={{ color: 'var(--c-muted)' }}>
+              <button onClick={() => setStep('wallet')} style={{ width:'100%', marginTop:20, padding:'10px', background:'none', border:'none', cursor:'pointer', fontSize:12, color:'rgba(255,255,255,.25)', transition:'color .2s' }}
+                onMouseEnter={e => e.currentTarget.style.color='rgba(255,255,255,.5)'}
+                onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,.25)'}>
                 ← Change wallet address
               </button>
             </div>
           )}
         </div>
 
-        <p className="text-center text-xs mt-6" style={{ color: 'var(--c-faint)' }}>
-          Read-only YouTube permissions · Polygon (PoS) · No private key required
+        <p style={s.footer}>
+          Read-only YouTube permissions · Polygon (PoS) · No private key required<br/>
+          Your data is never sold or shared
         </p>
       </div>
-    </main>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    </div>
   )
 }
