@@ -1,7 +1,6 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
-import { Logo, LogoMark } from '@/components/Logo'
 
 function CoinRain() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -197,8 +196,13 @@ export default function Home() {
       <div style={{ background:'#080b10', minHeight:'100vh', color:'#e2e8f0', fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', overflowX:'hidden', position:'relative', zIndex:2 }}>
 
         {/* NAV */}
-       <nav className="nav-glass" style={{ position:'sticky', top:0, zIndex:100, height:62, display:'flex', alignItems:'center', padding:'0 32px', justifyContent:'space-between' }}>
+        <nav className="nav-glass" style={{ position:'sticky', top:0, zIndex:100, height:62, display:'flex', alignItems:'center', padding:'0 32px', justifyContent:'space-between' }}>
   <Logo size="md" />
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <Link href="/dashboard" style={{ color:'rgba(255,255,255,.45)', textDecoration:'none', fontSize:13, fontWeight:500, padding:'7px 14px', borderRadius:9 }}>Dashboard</Link>
+            <Link href="/auth/connect" className="glow-btn" style={{ color:'#fff', textDecoration:'none', fontSize:13, fontWeight:700, padding:'8px 20px', borderRadius:11, display:'inline-block' }}>Start Mining</Link>
+          </div>
+        </nav>
 
         {/* HERO */}
         <section style={{ position:'relative', minHeight:'94vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', padding:'80px 24px 64px', overflow:'hidden' }}>
