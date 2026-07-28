@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
+import { Logo, LogoMark } from '@/components/Logo'
 
 function CoinRain() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
