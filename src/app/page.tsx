@@ -195,9 +195,9 @@ export default function Home() {
 
       <div style={{ background:'#080b10', minHeight:'100vh', color:'#e2e8f0', fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', overflowX:'hidden', position:'relative', zIndex:2 }}>
 
-        {/* NAV */}
+      {/* NAV */}
         <nav className="nav-glass" style={{ position:'sticky', top:0, zIndex:100, height:62, display:'flex', alignItems:'center', padding:'0 32px', justifyContent:'space-between' }}>
-  <Logo size="md" />
+          <Logo size="md" />
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <Link href="/dashboard" style={{ color:'rgba(255,255,255,.45)', textDecoration:'none', fontSize:13, fontWeight:500, padding:'7px 14px', borderRadius:9 }}>Dashboard</Link>
             <Link href="/auth/connect" className="glow-btn" style={{ color:'#fff', textDecoration:'none', fontSize:13, fontWeight:700, padding:'8px 20px', borderRadius:11, display:'inline-block' }}>Start Mining</Link>
@@ -386,10 +386,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* FOOTER */}
-        <Logo size="sm" />
+       {/* FOOTER */}
+        <footer style={{ borderTop:'1px solid rgba(255,255,255,.05)', padding:'28px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+          <Logo size="sm" />
           <div style={{ fontSize:11, color:'rgba(255,255,255,.18)', lineHeight:1.6, textAlign:'center' }}>
-            © 2026 StreamMine · Polygon (PoS) · ERC-20 · Smart contracts pending CertiK audit · Trading locked until DAO vote
+            {'© 2026 StreamMine · Polygon (PoS) · ERC-20 · Smart contracts pending CertiK audit · Trading locked until DAO vote'}
           </div>
         </footer>
 
